@@ -20,7 +20,7 @@ export DISPLAY=:0.0
 
 dobackup=0
 
-w | awk '{print $5}' | grep "s$" >/dev/null
+w | awk '{print $5}' | grep "s$" | grep -v days >/dev/null
 if [ "$?" == "0" ]; then
   dobackup=1;
   echo "doing backup because of non idle terminal"
