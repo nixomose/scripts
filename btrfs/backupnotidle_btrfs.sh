@@ -2,10 +2,17 @@
 
 # this is run out of /etc/crontab every minute
 # if there is terminal that is not idle or X is not idle
-# do a backup to zfs and snapshot it.
+# take a btrfs snapshot of /home into /home/snaps/home_<date>
 
 PROG=`basename $0`
 echo $PROG
+
+WHOAMI=`whoami`
+if [ "$WHOAMI" != "root" ]; 
+then echo "you must be root.";
+exit;
+fi
+
 reason=`cat /var/lock/mylockreason$PROG`
 msg=`mkdir /var/lock/mylock$PROG 2>&1`
 if [ "$?" != "0" ]  ; then
@@ -37,14 +44,14 @@ dobackup=0
 w | awk '{print $5}' | grep "s$" | grep -v days >/dev/null
 if [ "$?" == "0" ]; then
   dobackup=1;
-  echo "doing backup because of non idle terminal `date +%Y%m%d_%H%M`" | tee /var/lock/mylockreason$PROG
+  echo "taking snapshot because of non idle terminal `date +%Y%m%d_%H%M`" | tee /var/lock/mylockreason$PROG
 fi
 
 x=`sudo -u nixo bash -c "export DISPLAY=:0.0 && export XAUTHORITY=/home/nixo/.Xauthority && xprintidle"`
 y=$(( $x / 1000 ))
 if [ "$y" -lt "60" ]; then 
   dobackup=1;
-  echo "doing backup because of non idle X on main display `date +%Y%m%d_%H%M`"  | tee /var/lock/mylockreason$PROG
+  echo "taking snapshot because of non idle X on main display `date +%Y%m%d_%H%M`"  | tee /var/lock/mylockreason$PROG
 fi
  
 # check plan9 if it's there
@@ -55,7 +62,7 @@ if [ "$result" == "0" ]; then
   y=$(( $x / 1000 ))
   if [ "$y" -lt "60" ]; then 
     dobackup=1;
-    echo "doing backup because of non idle X on plan9 `date +%Y%m%d_%H%M`"  | tee /var/lock/mylockreason$PROG
+    echo "taking snapshot because of non idle X on plan9 `date +%Y%m%d_%H%M`"  | tee /var/lock/mylockreason$PROG
   fi
 else  
   echo "plan9 not detected"
@@ -76,26 +83,10 @@ else
 fi 
 
 if [ "$dobackup" == "1" ]; then
-
-# 5/2020 snapping zhome/homenixo now
-#  the old way... 
-#  time /home/nixo/bin/backupsptozfs.sh
-#  DATE=`date +%Y%m%d_%H%M`
-#  zfs snapshot  zbackup/backup@$DATE
-
   # make a snapshot of it.
   DATE=`date +%Y%m%d_%H%M`
-  echo "zfs snapshot zhome/homenixo@$DATE"
-  zfs snapshot zhome/homenixo@$DATE
+  echo "btrfs subvolume snapshot -r /home /home/snaps/homenixo_$DATE"
+  btrfs subvolume snapshot -r /home /home/snaps/homenixo_$DATE
 fi
-
-
-
-# 6/11/2020 I wrote a rollup script and this is now in cron
-## delete old snapshots
-#echo "start delete_snapshots at `date`"
-#echo "/home/nixo/bin/delete_snapshots_dataset.sh -d 90 -p zhome/homenixo@20 -o zhome/homenixo"
-#      /home/nixo/bin/delete_snapshots_dataset.sh -d 90 -p zhome/homenixo@20 -o zhome/homenixo 
-#echo "end   delete_snapshots at `date`"
 
 rmdir /var/lock/mylock$PROG
