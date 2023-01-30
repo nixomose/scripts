@@ -10,7 +10,7 @@ exit;
 fi
 
 if ! mkdir /var/lock/mylock$PROG; then
-  echo "Subject: $PROG lock failed." | sendmail nixo@exprodigy.net
+  echo "Subject: $PROG lock failed. $*" | sendmail nixo@exprodigy.net
   exit 1
 fi
 
@@ -32,15 +32,16 @@ if [ "$ok" != 0 ]; then
   exit 1
 fi
 
+RAND=$RANDOM
 
-SNAPPATH=/tmp/${PROG}_snapshots
-SNAPS=/tmp/${PROG}_snapshotnames
-KEEPLIST=/tmp/${PROG}_dayskeeplist
-KEEPLISTTEMP=/tmp/${PROG}_dayskeeplisttemp
-KEEPWHOLEDAYSLIST=/tmp/${PROG}_dayskeepwholedayslist
-SNAPSTOKEEP=/tmp/${PROG}_snapshotdaystokeeplist
-SNAPSTODESTROY=/tmp/${PROG}_snapshotstodestroy
-SNAPSONEDAY=/tmp/${PROG}_snapshotnamesoneday
+SNAPPATH=/tmp/${PROG}_snapshots_${RAND}
+SNAPS=/tmp/${PROG}_snapshotnames_${RAND}
+KEEPLIST=/tmp/${PROG}_dayskeeplist_${RAND}
+KEEPLISTTEMP=/tmp/${PROG}_dayskeeplisttemp_${RAND}
+KEEPWHOLEDAYSLIST=/tmp/${PROG}_dayskeepwholedayslist_${RAND}
+SNAPSTOKEEP=/tmp/${PROG}_snapshotdaystokeeplist_${RAND}
+SNAPSTODESTROY=/tmp/${PROG}_snapshotstodestroy_${RAND}
+SNAPSONEDAY=/tmp/${PROG}_snapshotnamesoneday_${RAND}
 
 keepfirstitem(){
 day=$1
@@ -85,8 +86,9 @@ do
 done
 
 
-# get a list of all of the wednesdays in the past year
-for i in {0..52}; do ((keepfirst[$(date +%Y%m%d -d "wednesday-$((i+1)) week")]++)); done
+# get a list of all of the wednesdays in the past six months
+#for i in {0..52}; do ((keepfirst[$(date +%Y%m%d -d "wednesday-$((i+1)) week")]++)); done
+for i in {0..26}; do ((keepfirst[$(date +%Y%m%d -d "wednesday-$((i+1)) week")]++)); done
 
 # now go through each item in keepfirst, get all the snapshots for that day and keep only the newest one, append them to keeplist
 

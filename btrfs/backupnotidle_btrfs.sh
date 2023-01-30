@@ -4,50 +4,98 @@
 # if there is terminal that is not idle or X is not idle
 # do a backup to zfs and snapshot it.
 
-# example cron entry:
-# * * * * * root /bin/backupnotidle.sh > /dev/null 2>&1
+PROG=`basename $0`
+echo $PROG
+reason=`cat /var/lock/mylockreason$PROG`
+msg=`mkdir /var/lock/mylock$PROG 2>&1`
+if [ "$?" != "0" ]  ; then
 
-EMAIL=me@example.com
-USERNAME=me
-
-if ! mkdir /var/lock/mylock; then
-  echo "Subject: backupnotidle lock failed." | sendmail $EMAIL
+  echo "couldn't lock /var/lock/mylock$PROG. waiting 30 minutes to send an email, waiting for delta=900"
+  # don't generate output and thus an email more than once every 30 minutes
+  last=`cat /var/lock/mylocktimer$PROG` 2>/dev/null
+  if [ -z "$last" ]; then
+    last="0";
+  fi
+echo "last=   " $last  
+  now=`date +%s`
+echo "now=    " $now
+  delta=`echo $(( $now - $last ))` # this is 30 minutes
+echo "delta = " $delta
+  if [ "$delta" -gt 900 ]; then # 15 minutes
+    echo "Subject: $PROG lock failed. $msg last=$last now=$now delta=$delta reason=$reason" | sendmail nixo@exprodigy.net
+    # reset timer
+    echo `date +%s` > /var/lock/mylocktimer$PROG 2>&1
+  fi
   exit 1
 fi
 
-# apparently needed for xprintidle
-export DISPLAY=:0.0
+# reset timer
+echo `date +%s` > /var/lock/mylocktimer$PROG 2>&1
 
 dobackup=0
 
 w | awk '{print $5}' | grep "s$" | grep -v days >/dev/null
 if [ "$?" == "0" ]; then
   dobackup=1;
-  echo "doing backup because of non idle terminal"
+  echo "doing backup because of non idle terminal `date +%Y%m%d_%H%M`" | tee /var/lock/mylockreason$PROG
 fi
 
-x=`sudo -u $USERNAME xprintidle`
+x=`sudo -u nixo bash -c "export DISPLAY=:0.0 && export XAUTHORITY=/home/nixo/.Xauthority && xprintidle"`
 y=$(( $x / 1000 ))
 if [ "$y" -lt "60" ]; then 
   dobackup=1;
-  echo "doing backup because of non idle X"
+  echo "doing backup because of non idle X on main display `date +%Y%m%d_%H%M`"  | tee /var/lock/mylockreason$PROG
 fi
  
+# check plan9 if it's there
+x=`sudo -u nixo bash -c "export DISPLAY=:9.0 && export XAUTHORITY=/home/nixo/.Xauthority && xprintidle"`
+result=$?
+echo "result $result"
+if [ "$result" == "0" ]; then
+  y=$(( $x / 1000 ))
+  if [ "$y" -lt "60" ]; then 
+    dobackup=1;
+    echo "doing backup because of non idle X on plan9 `date +%Y%m%d_%H%M`"  | tee /var/lock/mylockreason$PROG
+  fi
+else  
+  echo "plan9 not detected"
+fi 
+
+# check planb if it's there
+x=`sudo -u nixo bash -c "export DISPLAY=:8.0 && export XAUTHORITY=/home/nixo/.Xauthority && xprintidle"`
+result=$?
+echo "result $result"
+if [ "$result" == "0" ]; then
+  y=$(( $x / 1000 ))
+  if [ "$y" -lt "60" ]; then 
+    dobackup=1;
+    echo "doing backup because of non idle X on planb `date +%Y%m%d_%H%M`"  | tee /var/lock/mylockreason$PROG
+  fi
+else  
+  echo "planb not detected"
+fi 
+
 if [ "$dobackup" == "1" ]; then
 
-# insert your script here to rsync whatever you want to back up.
-# for example...
-rsync -al /home/$USERNAME     /tank/backup
+# 5/2020 snapping zhome/homenixo now
+#  the old way... 
+#  time /home/nixo/bin/backupsptozfs.sh
+#  DATE=`date +%Y%m%d_%H%M`
+#  zfs snapshot  zbackup/backup@$DATE
 
-# make a snapshot of it.
-DATE=`date +%Y%m%d_%H%M`
-zfs snapshot  tank/backup@$DATE
+  # make a snapshot of it.
+  DATE=`date +%Y%m%d_%H%M`
+  echo "zfs snapshot zhome/homenixo@$DATE"
+  zfs snapshot zhome/homenixo@$DATE
 fi
 
-# delete old snapshots
-# this script can be found here:
-# https://github.com/nixomose/zfs-scripts/tree/master/scripts
 
-delete_snapshots.sh -d 7 -t -p z
 
-rmdir /var/lock/mylock
+# 6/11/2020 I wrote a rollup script and this is now in cron
+## delete old snapshots
+#echo "start delete_snapshots at `date`"
+#echo "/home/nixo/bin/delete_snapshots_dataset.sh -d 90 -p zhome/homenixo@20 -o zhome/homenixo"
+#      /home/nixo/bin/delete_snapshots_dataset.sh -d 90 -p zhome/homenixo@20 -o zhome/homenixo 
+#echo "end   delete_snapshots at `date`"
+
+rmdir /var/lock/mylock$PROG
