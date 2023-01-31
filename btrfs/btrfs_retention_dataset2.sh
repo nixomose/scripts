@@ -62,9 +62,9 @@ fi
 echo "getting all snapshots in a list"
 btrfs subvolume list -r -s   ${dataset} | awk '{ print $NF }' > $SNAPPATH
 
-cat $SNAPPATH | awk -F "@" '{ print $2 }' | sort -r > $SNAPS
+cat $SNAPPATH | awk -F "_" '{ print $2 "_" $3 }' | sort -r > $SNAPS
 
-# get a list of all of the days in the past 3 days, keep every snapshot 
+# get a list of all of the days in the past 2 days, keep every snapshot 
 for i in {0..1}; do ((keep[$(date +%Y%m%d -d "-$i day")]++)); done
 echo ${!keep[@]}
 # get the list of snapshots that include the days we want to keep
