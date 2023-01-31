@@ -40,8 +40,10 @@ fi
 echo `date +%s` > /var/lock/mylocktimer$PROG 2>&1
 
 dobackup=0
+dobackup=1 # for testing
 
-w | awk '{print $5}' | grep "s$" | grep -v days >/dev/null
+# fedora's w puts idle in the 4th column not 5th.
+w | awk '{print $4}' | grep "s$" | grep -v days >/dev/null
 if [ "$?" == "0" ]; then
   dobackup=1;
   echo "taking snapshot because of non idle terminal `date +%Y%m%d_%H%M`" | tee /var/lock/mylockreason$PROG
