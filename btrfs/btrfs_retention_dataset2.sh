@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 
 PROG=`basename $0`
 echo $PROG
@@ -23,7 +23,7 @@ fi
 
 echo "you are root running retention for $dataset"
 
-zfs list "$dataset" >/dev/null 2>&1
+btrfs subvolume list "$dataset" >/dev/null 2>&1
 ok=$?
 
 if [ "$ok" != 0 ]; then
@@ -60,7 +60,7 @@ fi
 # first we get a list of all snapshots, figure out which ones we want to keep, then delete the rest
 
 echo "getting all snapshots in a list"
-zfs list -r -t snap -H -o name  ${dataset}  > $SNAPPATH
+btrfs subvolume list -r -s   ${dataset} | awk '{ print $NF }' > $SNAPPATH
 
 cat $SNAPPATH | awk -F "@" '{ print $2 }' | sort -r > $SNAPS
 
