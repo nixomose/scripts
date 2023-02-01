@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 
 PROG=`basename $0`
 echo $PROG
@@ -105,6 +105,6 @@ done
 # now get the inverse of that, get all the snapshots that exists that aren't in the list of ones we want to keep
 grep -vFf $KEEPLIST $SNAPS > $SNAPSTODESTROY
 
-cat $SNAPSTODESTROY   | xargs -n1 -I{} bash -c "echo zfs destroy ${dataset}@{} && zfs destroy ${dataset}@{}"
+cat $SNAPSTODESTROY   | xargs -I{} bash -c "echo zfs destroy ${dataset}@{} && zfs destroy ${dataset}@{}"
 
 rmdir /var/lock/mylock$PROG
