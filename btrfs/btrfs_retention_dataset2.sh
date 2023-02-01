@@ -108,20 +108,25 @@ grep -vFf $KEEPLIST $SNAPS > $SNAPSTODESTROY
 
 destroy_snap(){
   snapname=$1
+  SNAPPATH=$2
+  
   if [ "$snapname" == "" ]; then
     return
   fi
   # find the actual snap pathname for this snapname date
   path=`grep "$snapname" $SNAPPATH`
+  echo "got snapname $snapname"
+  echo $path
   if [ "$path" == "" ]; then
     echo "can't find snap date $snapname to destroy in master snaps list $SNAPPATH"
     return
   fi
-  echo "destroying snapshot $SNAPPATH   btrfs subvolume delete /home/$path"
+  echo "destroying snapshot $path:   btrfs subvolume delete /home/$path"
   btrfs subvolume delete /home/$path
 }
 
+export -f destroy_snap
 
-cat $SNAPSTODESTROY   | xargs -I{} destroy_snap {} 
+cat $SNAPSTODESTROY   | xargs -I {} bash -c 'destroy_snap "$@"' _ {} $SNAPPATH
 
 rmdir /var/lock/mylock$PROG
