@@ -105,6 +105,23 @@ done
 # now get the inverse of that, get all the snapshots that exists that aren't in the list of ones we want to keep
 grep -vFf $KEEPLIST $SNAPS > $SNAPSTODESTROY
 
-cat $SNAPSTODESTROY   | xargs -I{} bash -c "echo zfs destroy ${dataset}@{} && zfs destroy ${dataset}@{}"
+
+destroy_snap(){
+  snapname=$1
+  if [ "$snapname" == "" ]; then
+    return
+  fi
+  # find the actual snap pathname for this snapname date
+  path=`grep "$snapname" $SNAPPATH`
+  if [ "$path" == "" ]; then
+    echo "can't find snap date $snapname to destroy in master snaps list $SNAPPATH"
+    return
+  fi
+  echo "destroying snapshot $SNAPPATH   btrfs subvolume delete /home/$path"
+  btrfs subvolume delete /home/$path
+}
+
+
+cat $SNAPSTODESTROY   | xargs -I{} destroy_snap {} 
 
 rmdir /var/lock/mylock$PROG
