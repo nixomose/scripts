@@ -36,6 +36,7 @@ DATE=`date +%Y%m%d_%H%M`
 # NAME       WRITTEN
 # z/astudio   196608
 size=`zfs list -o written $SRC  -p |tail -1`
+echo "size of written to $SRC is $size"
 if [ "$(($size))" == "0" ]; then
   echo "no change to dataset since last snapshot. not making new snapshot"
 else
