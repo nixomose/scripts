@@ -8,7 +8,7 @@ export SRC=$1
 export DEST=$2
 
 # if DEST is on another machine, set REMOTE="ssh io.local"
-export REMOTE=
+export REMOTE="$3"
 
 echo "sending from $SRC to $DEST"
 
